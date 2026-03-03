@@ -9,13 +9,14 @@ public class MyLinkedList<T> implements MyLinkedListInterface<T> {
 
     @Override
     public void add(T value) {
-        Node<T> newNode = new Node<T>(tail, value, null);
+        Node<T> newNode = new Node<>(tail, value, null);
+
         if (tail == null) {
             head = newNode;
-        }
-        if (tail != null) {
+        } else {
             tail.next = newNode;
         }
+
         tail = newNode;
         size++;
     }
@@ -23,28 +24,38 @@ public class MyLinkedList<T> implements MyLinkedListInterface<T> {
     @Override
     public void add(T value, int index) {
         checkIndexForAdd(index);
+
+        // вставка в конец
         if (index == size) {
             add(value);
             return;
         }
+
+        // вставка в начало
         if (index == 0) {
             Node<T> oldHead = head;
-            Node<T> newNode = new Node<T>(null, value, oldHead);
+            Node<T> newNode = new Node<>(null, value, oldHead);
             head = newNode;
+
             if (oldHead != null) {
                 oldHead.prev = newNode;
             } else {
+                // список был пустой
                 tail = newNode;
             }
+
             size++;
             return;
         }
-        Node<T> right = findNodeByIndex(index);
-        Node<T> left = findNodeByIndex(index - 1);
-        Node<T> newNode = new Node<T>(left, value, right);
 
+        // вставка в середину: вклеиваем между left и right
+        Node<T> right = findNodeByIndex(index);
+        Node<T> left = right.prev;
+
+        Node<T> newNode = new Node<>(left, value, right);
         left.next = newNode;
         right.prev = newNode;
+
         size++;
     }
 
@@ -53,78 +64,51 @@ public class MyLinkedList<T> implements MyLinkedListInterface<T> {
         if (list == null) {
             throw new NullPointerException("List must not be null");
         }
-
-        for (int i = 0; i < list.size(); i++) {
-            add(list.get(i));
+        for (T value : list) {
+            add(value);
         }
     }
 
     @Override
     public T get(int index) {
         checkIndex(index);
-        return returnElement(index);
+        return findNodeByIndex(index).item;
     }
 
     @Override
     public T set(T value, int index) {
         checkIndex(index);
         Node<T> node = findNodeByIndex(index);
-        T oldNode = node.item;
+
+        T oldValue = node.item;
         node.item = value;
-        return oldNode;
+
+        return oldValue;
     }
 
     @Override
     public T remove(int index) {
         checkIndex(index);
         Node<T> node = findNodeByIndex(index);
-        final T oldNode = node.item;
-        Node<T> left = node.prev;
-        Node<T> right = node.next;
-        if (left == null) {
-            head = right;
-        } else {
-            left.next = right;
-        }
-        if (right == null) {
-            tail = left;
-        } else {
-            right.prev = left;
-        }
-        node.prev = null;
-        node.next = null;
-        size--;
-        return oldNode;
+
+        T oldValue = node.item;
+        unlink(node);
+
+        return oldValue;
     }
 
     @Override
     public boolean remove(T object) {
         Node<T> current = head;
-        for (int i = 0; i < size; i++) {
+
+        while (current != null) {
             if (areEqual(object, current.item)) {
-                Node<T> left = current.prev;
-                Node<T> right = current.next;
-
-                if (left == null) {
-                    head = right;
-                } else {
-                    left.next = right;
-                }
-
-                if (right == null) {
-                    tail = left;
-                } else {
-                    right.prev = left;
-                }
-
-                current.prev = null;
-                current.next = null;
-
-                size--;
+                unlink(current);
                 return true;
             }
             current = current.next;
         }
+
         return false;
     }
 
@@ -138,12 +122,43 @@ public class MyLinkedList<T> implements MyLinkedListInterface<T> {
         return size == 0;
     }
 
-    private Node<T> findNodeByIndex(int index) {
-        Node<T> current = head;
-        for (int i = 0; i < index; i++) {
-            current = current.next;
+    private void unlink(Node<T> node) {
+        Node<T> left = node.prev;
+        Node<T> right = node.next;
+
+        if (left == null) {
+            head = right;
+        } else {
+            left.next = right;
         }
-        return current;
+
+        if (right == null) {
+            tail = left;
+        } else {
+            right.prev = left;
+        }
+
+        node.prev = null;
+        node.next = null;
+
+        size--;
+    }
+
+    private Node<T> findNodeByIndex(int index) {
+        // предполагается, что индекс уже валиден
+        if (index < (size / 2)) {
+            Node<T> current = head;
+            for (int i = 0; i < index; i++) {
+                current = current.next;
+            }
+            return current;
+        } else {
+            Node<T> current = tail;
+            for (int i = size - 1; i > index; i--) {
+                current = current.prev;
+            }
+            return current;
+        }
     }
 
     private void checkIndex(int index) {
@@ -165,14 +180,6 @@ public class MyLinkedList<T> implements MyLinkedListInterface<T> {
         return first.equals(second);
     }
 
-    private T returnElement(int index) {
-        Node<T> current = head;
-        for (int i = 0; i < index; i++) {
-            current = current.next;
-        }
-        return current.item;
-    }
-
     private static class Node<T> {
         private T item;
         private Node<T> next;
@@ -185,4 +192,3 @@ public class MyLinkedList<T> implements MyLinkedListInterface<T> {
         }
     }
 }
-
